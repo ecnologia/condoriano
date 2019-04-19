@@ -12,6 +12,83 @@ console.log('puerto 8001')
 
 
 var SOCKET_LIST = {};
+var PLAYER_LIST = {};
+var BARAJA = {} //yo lo rellenaría aquí mismo, es un valor constante
+
+var Player = function(id){
+	var self = {
+		id = id;
+		money = 0;
+		personaje = "";
+		distritos = [];
+		mano = [];
+		turno = false;
+	}
+	return self;
+}
+
+var io = require('socket.io')(serv,{});
+io.sockets.on('connection', function(socket){
+	socket.id=Math.random();
+	SOCKET_LIST[socket.id]=socket;
+
+	var player = Player(socket.id);
+	PLAYER_LIST =[socket.id] = player;
+
+	if (SOCKET_LIST.length == 4) {
+	    socket.emit('serverMsg',{
+	        msg:'empezamos partida lets go'
+	    });
+
+	    barajar(BARAJA);
+
+	    for (var i in PLAYER_LIST) {
+	    	i.money += 2;
+	    	var rand = myArray[Math.floor(Math.random() * myArray.length)];
+	    	for (var j=0; j<4; j++) {
+	    		i.hand.push(PLAYER_LIST.pop());
+	    	}
+	    }
+	}
+
+
+    console.log('socket connection');
+
+    socket.on('disconnect',function(data){
+    	delete SOCKET_LIST[socket.id];
+    	delete PLAYER_LIST[socket.id];
+    	socket.emit('severMsg', {
+    		msg:'Un men se ha desconectado. Fin del juego.'
+    	})
+
+    });
+
+    socket.emit('serverMsg',{
+        msg:'hello',
+    });
+
+});
+
+// Función para barajar las cartas
+function barajar(arra1) {
+    let ctr = arra1.length;
+    let temp;
+    let index;
+
+    // While there are elements in the array
+    while (ctr > 0) {
+// Pick a random index
+        index = Math.floor(Math.random() * ctr);
+// Decrease ctr by 1
+        ctr--;
+// And swap the last element with it
+        temp = arra1[ctr];
+        arra1[ctr] = arra1[index];
+        arra1[index] = temp;
+    }
+    return arra1;
+}
+
 
 var Entity = function(){
 	var self = {
@@ -34,58 +111,7 @@ var Entity = function(){
 	return self;
 }
 
-var Player = function(id){
-	var self = Entity();
-	self.id = id;
-	self.number = "" + Math.floor(10 * Math.random());
-	self.pressingRight = false;
-	self.pressingLeft = false;
-	self.pressingUp = false;
-	self.pressingDown = false;
-	self.pressingAttack = false;
-	self.mouseAngle = 0;
-	self.maxSpd = 10;
 
-	var super_update = self.update;
-	self.update = function(){
-		self.updateSpd();
-		super_update();
-
-		if(self.pressingAttack){
-			self.shootBullet(self.mouseAngle);
-		}
-	}
-	self.shootBullet = function(angle){
-		var b = Bullet(self.id,angle);
-		b.x = self.x;
-		b.y = self.y;
-	}
-
-	self.updateSpd = function(){
-		if(self.pressingRight)
-			self.spdX = self.maxSpd;
-		else if(self.pressingLeft)
-			self.spdX = -self.maxSpd;
-		else
-			self.spdX = 0;
-
-		if(self.pressingUp)
-			self.spdY = -self.maxSpd;
-		else if(self.pressingDown)
-			self.spdY = self.maxSpd;
-		else
-			self.spdY = 0;
-	}
-	Player.list[id] = self;
-
-	initPack.player.push({
-		id:self.id,
-		x:self.x,
-		y:self.y,
-		number:self.number,
-	});
-	return self;
-}
 Player.list = {};
 Player.onConnect = function(socket){
 	var player = Player(socket.id);
